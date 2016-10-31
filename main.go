@@ -18,8 +18,12 @@ func main() {
 	// Config options.
 	var sourceElb string
 	var destElb string
+	var roleIAM string
+	var region string
 	flag.StringVar(&sourceElb, "source", "", "Source ELB")
 	flag.StringVar(&destElb, "dest", "", "Destination ELB")
+	flag.StringVar(&roleIAM, "role", "", "IAM role")
+	flag.StringVar(&region, "region", "us-east-1", "EC2 region")
 	flag.Parse()
 
 	// Halt if parameters are not specified.
@@ -29,15 +33,18 @@ func main() {
 	if destElb == "" {
 		log.Fatal("No destination ELB specified, swapELB -h to help")
 	}
+	if roleIAM == "" {
+		log.Fatal("No IAM role specified, swalELB -h tp help")
+	}
 
 	// Create a new aws session.
 	stsSvc := session.New()
 
 	// Get new temporary STS credentials for assumed role.
-	getCreds := stscreds.NewCredentials(stsSvc, "<roleARNhere>")
+	getCreds := stscreds.NewCredentials(stsSvc, roleIAM)
 
 	// Open a new elb session with the aws-sdk and pass in temporary sts credentials.
-	svc := elb.New(session.New(&aws.Config{Region: aws.String("us-east-1"), Credentials: getCreds}))
+	svc := elb.New(session.New(&aws.Config{Region: aws.String(region), Credentials: getCreds}))
 
 	// Define parameters to pass to DescribeInstanceHealth
 	params := &elb.DescribeInstanceHealthInput{LoadBalancerName: aws.String(sourceElb), Instances: []*elb.Instance{}}
